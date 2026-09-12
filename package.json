@@ -1,0 +1,13 @@
+{
+  "name": "packd-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "PACKD AI - Intelligent Food Packaging Recommendation Engine & Shelf-Life Simulation Platform",
+  "scripts": {
+    "dev": "python run_dev.py",
+    "build": "npm run build --prefix frontend",
+    "build:frontend": "npm run build --prefix frontend",
+    "test": "pytest backend/tests/test_packd.py",
+    "start": "python run_dev.py"
+  }
+}
