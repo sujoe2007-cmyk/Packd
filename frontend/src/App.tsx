@@ -11,7 +11,7 @@ import { ProduceScanner } from './components/ProduceScanner';
 import { IoTColdChainTracker } from './components/IoTColdChainTracker';
 import { TraceabilityPassportModal } from './components/TraceabilityPassportModal';
 import { FoodCommodity, RecommendationResult } from './types';
-import { Boxes, ShieldCheck, Heart, Sparkles, Database, FileText } from 'lucide-react';
+import { Boxes, ShieldCheck, Heart, Sparkles, Database, FileText, Cpu } from 'lucide-react';
 
 export function App() {
   const [activeTab, setActiveTab] = useState<string>('recommender');
@@ -61,12 +61,22 @@ export function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between selection:bg-brand-500 selection:text-white">
+    <div className="min-h-screen bg-[#060911] text-slate-100 flex flex-col justify-between selection:bg-emerald-500 selection:text-white relative overflow-x-hidden">
+      {/* Ambient background glow meshes */}
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+        <div className="absolute top-0 left-1/4 w-[600px] h-[350px] bg-emerald-500/8 rounded-full blur-[140px] transform -translate-y-1/2"></div>
+        <div className="absolute top-1/3 right-10 w-[500px] h-[400px] bg-sky-500/6 rounded-full blur-[160px]"></div>
+        <div className="absolute bottom-10 left-10 w-[550px] h-[350px] bg-indigo-500/6 rounded-full blur-[150px]"></div>
+        <div className="absolute inset-0 blueprint-grid opacity-60"></div>
+      </div>
+
       {/* Top Navigation */}
-      <Navbar activeTab={activeTab} setActiveTab={setActiveTab} />
+      <div className="relative z-50">
+        <Navbar activeTab={activeTab} setActiveTab={setActiveTab} />
+      </div>
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="relative z-10 flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 transition-all">
         {activeTab === 'recommender' && (
           currentRecommendation ? (
             <RecommendationResultView
@@ -122,26 +132,30 @@ export function App() {
       )}
 
       {/* Enterprise Footer */}
-      <footer className="border-t border-slate-900 bg-slate-950/80 mt-16 py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-500">
+      <footer className="relative z-10 border-t border-slate-800/80 bg-slate-950/80 backdrop-blur-md mt-16 py-7">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-400">
           <div className="flex items-center space-x-3">
-            <div className="w-6 h-6 rounded-lg bg-brand-500/20 text-brand-400 flex items-center justify-center font-bold">
-              <Boxes className="w-3.5 h-3.5" />
+            <div className="w-7 h-7 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center font-bold shadow-sm">
+              <Boxes className="w-4 h-4" />
             </div>
             <span>
-              <strong className="text-slate-300">PACKD AI</strong> — Smart India Hackathon (SIH 2026) Flagship
+              <strong className="text-white font-semibold">PACKD AI</strong> — Smart India Hackathon (SIH 2026) Flagship Architecture
             </span>
           </div>
 
-          <div className="flex items-center space-x-6 text-[11px]">
-            <span className="flex items-center space-x-1">
+          <div className="flex flex-wrap items-center justify-center gap-4 text-[11px] text-slate-400 font-mono">
+            <span className="flex items-center space-x-1.5 px-2.5 py-1 rounded-md bg-slate-900 border border-slate-800">
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Physics-Informed Barrier Engine</span>
+              <span>ASTM D3985 / ASTM E96 Calibrated</span>
             </span>
-            <span>•</span>
-            <span>ASTM D3985 / ASTM E96 Calibrated</span>
-            <span>•</span>
-            <span>MoEFCC PWM Compliant</span>
+            <span className="flex items-center space-x-1.5 px-2.5 py-1 rounded-md bg-slate-900 border border-slate-800">
+              <Cpu className="w-3.5 h-3.5 text-sky-400" />
+              <span>Arrhenius & Michaelis-Menten Engine</span>
+            </span>
+            <span className="flex items-center space-x-1.5 px-2.5 py-1 rounded-md bg-slate-900 border border-slate-800">
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              <span>MoEFCC EPR Compliant</span>
+            </span>
           </div>
         </div>
       </footer>

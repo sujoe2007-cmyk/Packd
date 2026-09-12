@@ -4,19 +4,18 @@ import {
   Wand2, 
   Flame, 
   Droplets, 
-  Wind, 
   Thermometer, 
   Truck, 
   Scale, 
-  ShieldCheck, 
   Leaf, 
-  HelpCircle,
   ArrowRight,
   RefreshCw,
-  Sliders,
-  Check,
   Camera,
-  Languages
+  Languages,
+  Layers,
+  Compass,
+  CheckCircle2,
+  ChevronRight
 } from 'lucide-react';
 import { FoodCommodity, RecommendationResult } from '../types';
 import { api } from '../lib/api';
@@ -72,7 +71,6 @@ export const RecommenderForm: React.FC<RecommenderFormProps> = ({
         const data = await api.getCommodities();
         setCommodities(data);
         if (data.length > 0) {
-          // Default to potato chips or first item
           const defaultItem = data.find(c => c.name.includes('Chips') || c.name.includes('Potato')) || data[0];
           applyCommodityPreset(defaultItem);
         }
@@ -105,10 +103,9 @@ export const RecommenderForm: React.FC<RecommenderFormProps> = ({
       is_respiring: item.is_respiring,
       respiration_rate_o2: item.respiration_rate_o2,
       respiration_rate_co2: item.respiration_rate_co2,
-      desired_shelf_life_days: item.baseline_shelf_life_ambient_days ? Math.round(item.baseline_shelf_life_ambient_days * 3) : 30,
-      storage_temperature_c: item.category === 'Fresh Produce' ? 4.0 : (item.category === 'Dairy' ? 4.0 : 25.0),
-      storage_type: item.category === 'Fresh Produce' || item.category === 'Dairy' || item.category === 'Meat & Poultry' ? 'CHILLED' : 'AMBIENT',
-      storage_relative_humidity_pct: item.optimal_rh_min || 65.0,
+      desired_shelf_life_days: item.baseline_shelf_life_ambient_days ? Math.min(365, item.baseline_shelf_life_ambient_days * 3) : 90,
+      storage_temperature_c: item.optimal_temp_min !== undefined ? (item.optimal_temp_min + item.optimal_temp_max) / 2 : 25.0,
+      storage_relative_humidity_pct: item.optimal_rh_min !== undefined ? (item.optimal_rh_min + item.optimal_rh_max) / 2 : 65.0,
     }));
   };
 
@@ -118,27 +115,24 @@ export const RecommenderForm: React.FC<RecommenderFormProps> = ({
     try {
       const estimated = await api.estimateFoodProperties({
         name: aiPromptName,
-        category: aiPromptCategory,
+        category: aiPromptCategory
       });
-      setSelectedCommodityId('custom');
       setFormData(prev => ({
         ...prev,
-        commodity_id: '',
-        commodity_name: estimated.name,
-        category: estimated.category,
+        commodity_name: estimated.name || aiPromptName,
+        category: estimated.category || aiPromptCategory,
         moisture_content: estimated.moisture_content,
         fat_content: estimated.fat_content,
         ph: estimated.ph,
         water_activity: estimated.water_activity,
         is_respiring: estimated.is_respiring,
-        respiration_rate_o2: estimated.respiration_rate_o2,
-        respiration_rate_co2: estimated.respiration_rate_co2,
-        storage_temperature_c: estimated.optimal_temp_min || 20.0,
-        storage_relative_humidity_pct: estimated.optimal_rh_min || 60.0
+        respiration_rate_o2: estimated.respiration_rate_o2 || 0.0,
+        desired_shelf_life_days: estimated.baseline_shelf_life_ambient_days ? estimated.baseline_shelf_life_ambient_days * 2 : 90
       }));
       setAiWizardOpen(false);
     } catch (err) {
       console.error('Error estimating properties:', err);
+      alert('Could not estimate properties. Please ensure backend is running.');
     } finally {
       setIsEstimating(false);
     }
@@ -159,21 +153,21 @@ export const RecommenderForm: React.FC<RecommenderFormProps> = ({
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8">
-      {/* Header Banner */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-brand-950/80 via-slate-900 to-slate-950 border border-brand-500/20 p-6 sm:p-8 shadow-2xl">
-        <div className="absolute -right-10 -bottom-10 w-60 h-60 bg-brand-500/10 rounded-full blur-3xl pointer-events-none"></div>
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-          <div className="space-y-2">
-            <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-brand-500/15 border border-brand-500/30 text-brand-300 text-xs font-semibold">
-              <Sparkles className="w-3.5 h-3.5 text-brand-400" />
-              <span>Physics-Informed Barrier & MAP Recommendation Model</span>
+    <div className="max-w-5xl mx-auto space-y-8 animate-fadeIn">
+      {/* Sleek Hero Banner */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900/90 via-slate-900/70 to-emerald-950/40 border border-slate-800/90 p-6 sm:p-8 backdrop-blur-xl shadow-2xl">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20"></div>
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div className="space-y-2.5 max-w-2xl">
+            <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 text-xs font-semibold">
+              <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Physics-Informed Formulation Engine</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
               Intelligent Packaging Formulator
             </h1>
-            <p className="text-sm text-slate-300 max-w-2xl leading-relaxed">
-              Synthesizes multilayer films, computes critical barrier limits (OTR, WVTR, CO2TR), sizes respiration micro-perforations, and validates Plastic Waste Management (PWM) compliance in real-time.
+            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-normal">
+              Computes exact multi-layer laminate gauges, barrier thresholds (OTR/WVTR), respiration micro-perforations, and compliance rules in real-time.
             </p>
           </div>
 
@@ -182,59 +176,59 @@ export const RecommenderForm: React.FC<RecommenderFormProps> = ({
               <button
                 type="button"
                 onClick={onOpenScanner}
-                className="flex items-center justify-center space-x-2 px-3.5 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs shadow-lg shadow-cyan-600/20 transition-all transform hover:scale-[1.02]"
+                className="flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/30 text-sky-300 hover:text-sky-200 font-semibold text-xs transition-all shadow-sm"
               >
-                <Camera className="w-4 h-4" />
-                <span>AI Vision Scanner</span>
+                <Camera className="w-4 h-4 text-sky-400" />
+                <span>AI Vision Scan</span>
               </button>
             )}
 
             <button
               type="button"
               onClick={() => setAiWizardOpen(!aiWizardOpen)}
-              className="flex items-center justify-center space-x-2 px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-brand-600 hover:from-emerald-400 hover:to-brand-500 text-slate-950 font-bold text-xs shadow-lg shadow-brand-500/20 transition-all transform hover:scale-[1.02]"
+              className="flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 hover:text-emerald-200 font-semibold text-xs transition-all shadow-sm"
             >
-              <Wand2 className="w-4 h-4" />
-              <span>AI Custom Food Wizard</span>
+              <Wand2 className="w-4 h-4 text-emerald-400" />
+              <span>Custom Food AI</span>
             </button>
 
             <button
               type="button"
               onClick={() => setVoiceAssistantOpen(!voiceAssistantOpen)}
-              className="flex items-center justify-center space-x-2 px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 hover:border-brand-400 text-slate-200 hover:text-white font-bold text-xs transition-all"
+              className="flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/80 text-slate-300 hover:text-white font-semibold text-xs transition-all"
             >
-              <Languages className="w-4 h-4 text-brand-400" />
-              <span>Voice Assistant</span>
+              <Languages className="w-4 h-4 text-amber-400" />
+              <span>Voice Assist</span>
             </button>
           </div>
         </div>
 
-        {/* Multilingual Voice Assistant Panel */}
+        {/* Voice Assistant Panel Dropdown */}
         {voiceAssistantOpen && (
-          <div className="mt-6 pt-6 border-t border-slate-800/80">
+          <div className="mt-6 pt-6 border-t border-slate-800/80 animate-fadeIn">
             <LanguageVoiceAssistant />
           </div>
         )}
 
-        {/* AI Custom Food Estimator Dropdown Modal */}
+        {/* AI Custom Food Estimator Dropdown */}
         {aiWizardOpen && (
-          <div className="mt-6 pt-6 border-t border-slate-800/80 grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-900/90 p-4 rounded-xl border border-brand-500/30">
-            <div className="sm:col-span-1">
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Custom Food Commodity Name</label>
+          <div className="mt-6 pt-6 border-t border-slate-800/80 grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-950/70 p-4 rounded-2xl border border-emerald-500/20 animate-fadeIn">
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-300 mb-1">Custom Food Name</label>
               <input
                 type="text"
                 placeholder="e.g. Jackfruit Crisps, Gond Ladoo"
                 value={aiPromptName}
                 onChange={(e) => setAiPromptName(e.target.value)}
-                className="w-full px-3 py-2 text-xs rounded-lg bg-slate-950 border border-slate-700 text-white focus:border-brand-400 focus:outline-none"
+                className="w-full px-3 py-2 text-xs rounded-xl bg-slate-900 border border-slate-700 text-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30 outline-none"
               />
             </div>
-            <div className="sm:col-span-1">
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Broad Category</label>
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-300 mb-1">Category</label>
               <select
                 value={aiPromptCategory}
                 onChange={(e) => setAiPromptCategory(e.target.value)}
-                className="w-full px-3 py-2 text-xs rounded-lg bg-slate-950 border border-slate-700 text-white focus:border-brand-400 focus:outline-none"
+                className="w-full px-3 py-2 text-xs rounded-xl bg-slate-900 border border-slate-700 text-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30 outline-none"
               >
                 <option value="Fresh Produce">Fresh Produce (Fruits / Veg)</option>
                 <option value="Snacks & Ready-To-Eat">Snacks & Ready-To-Eat</option>
@@ -245,12 +239,12 @@ export const RecommenderForm: React.FC<RecommenderFormProps> = ({
                 <option value="Beverages">Beverages & Coffee</option>
               </select>
             </div>
-            <div className="sm:col-span-1 flex items-end">
+            <div className="flex items-end">
               <button
                 type="button"
                 onClick={handleAiEstimate}
                 disabled={isEstimating || !aiPromptName}
-                className="w-full py-2.5 px-4 rounded-lg bg-brand-500 hover:bg-brand-400 text-slate-950 font-bold text-xs flex items-center justify-center space-x-2 disabled:opacity-50"
+                className="w-full py-2 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs flex items-center justify-center space-x-2 transition-all disabled:opacity-50 shadow-md shadow-emerald-500/20"
               >
                 {isEstimating ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Wand2 className="w-3.5 h-3.5" />}
                 <span>Auto-Infer Parameters</span>
@@ -260,30 +254,30 @@ export const RecommenderForm: React.FC<RecommenderFormProps> = ({
         )}
       </div>
 
-      {/* Main Input Form */}
+      {/* Main Form */}
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Section 1: Food Preset & Biochemical Characteristics */}
-        <div className="glass-panel p-6 rounded-2xl space-y-6 border border-slate-800">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+        {/* Step 1: Commodity Selection & Biochemical Profile */}
+        <div className="glass-panel p-6 sm:p-7 rounded-3xl space-y-6 border border-slate-800/90">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800/80 pb-5">
             <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center font-bold text-sm">
-                1
+              <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-xs">
+                01
               </div>
               <div>
-                <h3 className="text-base font-bold text-white">Food Commodity & Biochemical Profile</h3>
-                <p className="text-xs text-slate-400">Select from pre-validated food presets or customize parameters</p>
+                <h3 className="text-sm font-bold text-white tracking-tight">Food Commodity & Biochemical Profile</h3>
+                <p className="text-xs text-slate-400">Select calibrated food matrix or enter custom properties</p>
               </div>
             </div>
 
             {/* Quick Preset Selector */}
-            <div className="w-64">
+            <div className="w-full sm:w-72">
               <select
                 value={selectedCommodityId}
                 onChange={(e) => {
                   const found = commodities.find(c => c.id === e.target.value);
                   if (found) applyCommodityPreset(found);
                 }}
-                className="w-full text-xs bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:border-brand-400 focus:outline-none"
+                className="w-full text-xs bg-slate-900 border border-slate-700/90 rounded-xl px-3.5 py-2 text-slate-200 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30 outline-none transition-all"
               >
                 <option value="">-- Choose Commodity Preset --</option>
                 {commodities.map((c) => (
@@ -297,26 +291,24 @@ export const RecommenderForm: React.FC<RecommenderFormProps> = ({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Commodity Name */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center justify-between">
-                <span>Commodity Name</span>
-              </label>
+            <div className="space-y-1.5">
+              <label className="block text-xs font-semibold text-slate-300">Commodity Name</label>
               <input
                 type="text"
                 value={formData.commodity_name}
                 onChange={(e) => setFormData({ ...formData, commodity_name: e.target.value })}
-                className="w-full px-3 py-2 bg-slate-900/90 border border-slate-700/80 rounded-lg text-xs font-medium text-white focus:border-brand-400 focus:outline-none"
+                className="w-full px-3.5 py-2.5 bg-slate-900/90 border border-slate-700/80 rounded-xl text-xs font-medium text-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30 outline-none transition-all"
                 required
               />
             </div>
 
             {/* Category */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">Category</label>
+            <div className="space-y-1.5">
+              <label className="block text-xs font-semibold text-slate-300">Category</label>
               <select
                 value={formData.category}
                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                className="w-full px-3 py-2 bg-slate-900/90 border border-slate-700/80 rounded-lg text-xs font-medium text-white focus:border-brand-400 focus:outline-none"
+                className="w-full px-3.5 py-2.5 bg-slate-900/90 border border-slate-700/80 rounded-xl text-xs font-medium text-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30 outline-none transition-all"
               >
                 <option value="Fresh Produce">Fresh Produce (Fruits / Veg)</option>
                 <option value="Snacks & Ready-To-Eat">Snacks & Ready-To-Eat</option>
@@ -330,14 +322,14 @@ export const RecommenderForm: React.FC<RecommenderFormProps> = ({
             </div>
 
             {/* Moisture Content % */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center justify-between">
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-xs font-semibold text-slate-300">
                 <span className="flex items-center space-x-1">
                   <Droplets className="w-3.5 h-3.5 text-sky-400" />
-                  <span>Moisture Content (%)</span>
+                  <span>Moisture Content</span>
                 </span>
-                <span className="text-brand-400 font-mono font-bold">{formData.moisture_content}%</span>
-              </label>
+                <span className="text-emerald-400 font-mono font-bold text-xs">{formData.moisture_content}%</span>
+              </div>
               <input
                 type="number"
                 step="0.1"
@@ -345,19 +337,19 @@ export const RecommenderForm: React.FC<RecommenderFormProps> = ({
                 max="100"
                 value={formData.moisture_content}
                 onChange={(e) => setFormData({ ...formData, moisture_content: parseFloat(e.target.value) || 0 })}
-                className="w-full px-3 py-2 bg-slate-900/90 border border-slate-700/80 rounded-lg text-xs font-medium text-white focus:border-brand-400 focus:outline-none"
+                className="w-full px-3.5 py-2.5 bg-slate-900/90 border border-slate-700/80 rounded-xl text-xs font-medium text-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30 outline-none transition-all"
               />
             </div>
 
             {/* Fat / Oil % */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center justify-between">
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-xs font-semibold text-slate-300">
                 <span className="flex items-center space-x-1">
                   <Flame className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Fat / Oil Content (%)</span>
+                  <span>Fat / Oil Content</span>
                 </span>
-                <span className="text-brand-400 font-mono font-bold">{formData.fat_content}%</span>
-              </label>
+                <span className="text-amber-400 font-mono font-bold text-xs">{formData.fat_content}%</span>
+              </div>
               <input
                 type="number"
                 step="0.1"
@@ -365,13 +357,13 @@ export const RecommenderForm: React.FC<RecommenderFormProps> = ({
                 max="100"
                 value={formData.fat_content}
                 onChange={(e) => setFormData({ ...formData, fat_content: parseFloat(e.target.value) || 0 })}
-                className="w-full px-3 py-2 bg-slate-900/90 border border-slate-700/80 rounded-lg text-xs font-medium text-white focus:border-brand-400 focus:outline-none"
+                className="w-full px-3.5 py-2.5 bg-slate-900/90 border border-slate-700/80 rounded-xl text-xs font-medium text-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30 outline-none transition-all"
               />
             </div>
 
             {/* Water Activity aw */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">Water Activity (a_w)</label>
+            <div className="space-y-1.5">
+              <label className="block text-xs font-semibold text-slate-300">Water Activity (a_w)</label>
               <input
                 type="number"
                 step="0.01"
@@ -379,13 +371,13 @@ export const RecommenderForm: React.FC<RecommenderFormProps> = ({
                 max="1.0"
                 value={formData.water_activity}
                 onChange={(e) => setFormData({ ...formData, water_activity: parseFloat(e.target.value) || 0.85 })}
-                className="w-full px-3 py-2 bg-slate-900/90 border border-slate-700/80 rounded-lg text-xs font-medium text-white focus:border-brand-400 focus:outline-none"
+                className="w-full px-3.5 py-2.5 bg-slate-900/90 border border-slate-700/80 rounded-xl text-xs font-medium text-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30 outline-none transition-all"
               />
             </div>
 
             {/* pH */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">pH Level</label>
+            <div className="space-y-1.5">
+              <label className="block text-xs font-semibold text-slate-300">pH Level</label>
               <input
                 type="number"
                 step="0.1"
@@ -393,35 +385,35 @@ export const RecommenderForm: React.FC<RecommenderFormProps> = ({
                 max="14.0"
                 value={formData.ph}
                 onChange={(e) => setFormData({ ...formData, ph: parseFloat(e.target.value) || 6.0 })}
-                className="w-full px-3 py-2 bg-slate-900/90 border border-slate-700/80 rounded-lg text-xs font-medium text-white focus:border-brand-400 focus:outline-none"
+                className="w-full px-3.5 py-2.5 bg-slate-900/90 border border-slate-700/80 rounded-xl text-xs font-medium text-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30 outline-none transition-all"
               />
             </div>
 
-            {/* Respiration Toggle & Rate */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center justify-between">
+            {/* Produce Respiration Toggle */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-xs font-semibold text-slate-300">
                 <span>Produce Respiration</span>
-                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${formData.is_respiring ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-800 text-slate-400'}`}>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${formData.is_respiring ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-slate-800 text-slate-400'}`}>
                   {formData.is_respiring ? 'ACTIVE' : 'NONE'}
                 </span>
-              </label>
-              <div className="flex items-center space-x-2">
+              </div>
+              <div className="flex items-center space-x-2.5 pt-1.5">
                 <input
                   type="checkbox"
                   id="resp_check"
                   checked={formData.is_respiring}
                   onChange={(e) => setFormData({ ...formData, is_respiring: e.target.checked })}
-                  className="w-4 h-4 rounded text-brand-500 focus:ring-brand-400 bg-slate-900 border-slate-700"
+                  className="w-4 h-4 rounded text-emerald-500 focus:ring-emerald-400 bg-slate-900 border-slate-700 cursor-pointer"
                 />
-                <label htmlFor="resp_check" className="text-xs text-slate-300 cursor-pointer">
-                  Living/Respiring Fruit/Veg
+                <label htmlFor="resp_check" className="text-xs text-slate-300 cursor-pointer select-none">
+                  Living / Respiring Fruit / Veg
                 </label>
               </div>
             </div>
 
             {/* Respiration Rate RO2 */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+            <div className="space-y-1.5">
+              <label className="block text-xs font-semibold text-slate-300">
                 R_O2 (mg/kg·h at 20°C)
               </label>
               <input
@@ -431,44 +423,44 @@ export const RecommenderForm: React.FC<RecommenderFormProps> = ({
                 disabled={!formData.is_respiring}
                 value={formData.respiration_rate_o2}
                 onChange={(e) => setFormData({ ...formData, respiration_rate_o2: parseFloat(e.target.value) || 0 })}
-                className="w-full px-3 py-2 bg-slate-900/90 border border-slate-700/80 rounded-lg text-xs font-medium text-white focus:border-brand-400 focus:outline-none disabled:opacity-40"
+                className="w-full px-3.5 py-2.5 bg-slate-900/90 border border-slate-700/80 rounded-xl text-xs font-medium text-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30 outline-none transition-all disabled:opacity-30"
               />
             </div>
           </div>
         </div>
 
-        {/* Section 2: Storage Environment, Logistics & Packaging Dimensions */}
-        <div className="glass-panel p-6 rounded-2xl space-y-6 border border-slate-800">
-          <div className="flex items-center space-x-3 border-b border-slate-800 pb-4">
-            <div className="w-8 h-8 rounded-lg bg-sky-500/10 text-sky-400 flex items-center justify-center font-bold text-sm">
-              2
+        {/* Step 2: Storage Environment, Package Sizing & Target */}
+        <div className="glass-panel p-6 sm:p-7 rounded-3xl space-y-6 border border-slate-800/90">
+          <div className="flex items-center space-x-3 border-b border-slate-800/80 pb-5">
+            <div className="w-8 h-8 rounded-xl bg-sky-500/10 border border-sky-500/20 text-sky-400 flex items-center justify-center font-bold text-xs">
+              02
             </div>
             <div>
-              <h3 className="text-base font-bold text-white">Storage Environment & Package Sizing</h3>
-              <p className="text-xs text-slate-400">Specify target storage temperature, shelf-life objective, and container geometry</p>
+              <h3 className="text-sm font-bold text-white tracking-tight">Storage Environment & Package Dimensions</h3>
+              <p className="text-xs text-slate-400">Specify shelf-life goal, ambient temperatures, and geometry</p>
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Desired Shelf Life */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center justify-between">
-                <span>Target Shelf Life (Days)</span>
-                <span className="text-brand-400 font-mono font-bold">{formData.desired_shelf_life_days} d</span>
-              </label>
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-xs font-semibold text-slate-300">
+                <span>Target Shelf Life</span>
+                <span className="text-emerald-400 font-mono font-bold">{formData.desired_shelf_life_days} Days</span>
+              </div>
               <input
                 type="number"
                 min="1"
                 max="1000"
                 value={formData.desired_shelf_life_days}
                 onChange={(e) => setFormData({ ...formData, desired_shelf_life_days: parseInt(e.target.value) || 30 })}
-                className="w-full px-3 py-2 bg-slate-900/90 border border-slate-700/80 rounded-lg text-xs font-medium text-white focus:border-brand-400 focus:outline-none"
+                className="w-full px-3.5 py-2.5 bg-slate-900/90 border border-slate-700/80 rounded-xl text-xs font-medium text-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30 outline-none transition-all"
               />
             </div>
 
-            {/* Storage Type */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">Storage Mode</label>
+            {/* Storage Mode */}
+            <div className="space-y-1.5">
+              <label className="block text-xs font-semibold text-slate-300">Storage Mode</label>
               <select
                 value={formData.storage_type}
                 onChange={(e) => {
@@ -479,7 +471,7 @@ export const RecommenderForm: React.FC<RecommenderFormProps> = ({
                     storage_temperature_c: val === 'FROZEN' ? -18.0 : (val === 'CHILLED' ? 4.0 : 25.0)
                   });
                 }}
-                className="w-full px-3 py-2 bg-slate-900/90 border border-slate-700/80 rounded-lg text-xs font-medium text-white focus:border-brand-400 focus:outline-none"
+                className="w-full px-3.5 py-2.5 bg-slate-900/90 border border-slate-700/80 rounded-xl text-xs font-medium text-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30 outline-none transition-all"
               >
                 <option value="AMBIENT">Ambient (18°C - 35°C)</option>
                 <option value="CHILLED">Chilled / Refrigerated (0°C - 8°C)</option>
@@ -488,76 +480,76 @@ export const RecommenderForm: React.FC<RecommenderFormProps> = ({
             </div>
 
             {/* Storage Temp °C */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center justify-between">
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-xs font-semibold text-slate-300">
                 <span className="flex items-center space-x-1">
                   <Thermometer className="w-3.5 h-3.5 text-rose-400" />
-                  <span>Storage Temp (°C)</span>
+                  <span>Storage Temp</span>
                 </span>
-                <span className="text-brand-400 font-mono font-bold">{formData.storage_temperature_c}°C</span>
-              </label>
+                <span className="text-rose-400 font-mono font-bold">{formData.storage_temperature_c}°C</span>
+              </div>
               <input
                 type="number"
                 step="0.5"
                 value={formData.storage_temperature_c}
                 onChange={(e) => setFormData({ ...formData, storage_temperature_c: parseFloat(e.target.value) || 25 })}
-                className="w-full px-3 py-2 bg-slate-900/90 border border-slate-700/80 rounded-lg text-xs font-medium text-white focus:border-brand-400 focus:outline-none"
+                className="w-full px-3.5 py-2.5 bg-slate-900/90 border border-slate-700/80 rounded-xl text-xs font-medium text-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30 outline-none transition-all"
               />
             </div>
 
             {/* Storage RH % */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center justify-between">
-                <span>Relative Humidity (% RH)</span>
-                <span className="text-brand-400 font-mono font-bold">{formData.storage_relative_humidity_pct}%</span>
-              </label>
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-xs font-semibold text-slate-300">
+                <span>Relative Humidity</span>
+                <span className="text-sky-400 font-mono font-bold">{formData.storage_relative_humidity_pct}% RH</span>
+              </div>
               <input
                 type="number"
                 min="10"
                 max="100"
                 value={formData.storage_relative_humidity_pct}
                 onChange={(e) => setFormData({ ...formData, storage_relative_humidity_pct: parseFloat(e.target.value) || 65 })}
-                className="w-full px-3 py-2 bg-slate-900/90 border border-slate-700/80 rounded-lg text-xs font-medium text-white focus:border-brand-400 focus:outline-none"
+                className="w-full px-3.5 py-2.5 bg-slate-900/90 border border-slate-700/80 rounded-xl text-xs font-medium text-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30 outline-none transition-all"
               />
             </div>
 
-            {/* Package Net Weight */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center space-x-1">
+            {/* Package Weight */}
+            <div className="space-y-1.5">
+              <label className="block text-xs font-semibold text-slate-300 flex items-center space-x-1">
                 <Scale className="w-3.5 h-3.5 text-indigo-400" />
-                <span>Unit Weight (Grams)</span>
+                <span>Unit Weight (g)</span>
               </label>
               <input
                 type="number"
                 min="5"
                 value={formData.package_weight_grams}
                 onChange={(e) => setFormData({ ...formData, package_weight_grams: parseFloat(e.target.value) || 100 })}
-                className="w-full px-3 py-2 bg-slate-900/90 border border-slate-700/80 rounded-lg text-xs font-medium text-white focus:border-brand-400 focus:outline-none"
+                className="w-full px-3.5 py-2.5 bg-slate-900/90 border border-slate-700/80 rounded-xl text-xs font-medium text-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30 outline-none transition-all"
               />
             </div>
 
             {/* Surface Area */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">Pouch Surface Area (cm²)</label>
+            <div className="space-y-1.5">
+              <label className="block text-xs font-semibold text-slate-300">Surface Area (cm²)</label>
               <input
                 type="number"
                 min="20"
                 value={formData.package_surface_area_cm2}
                 onChange={(e) => setFormData({ ...formData, package_surface_area_cm2: parseFloat(e.target.value) || 400 })}
-                className="w-full px-3 py-2 bg-slate-900/90 border border-slate-700/80 rounded-lg text-xs font-medium text-white focus:border-brand-400 focus:outline-none"
+                className="w-full px-3.5 py-2.5 bg-slate-900/90 border border-slate-700/80 rounded-xl text-xs font-medium text-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30 outline-none transition-all"
               />
             </div>
 
-            {/* Logistics Vibration Stress */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center space-x-1">
+            {/* Logistics Stress */}
+            <div className="space-y-1.5">
+              <label className="block text-xs font-semibold text-slate-300 flex items-center space-x-1">
                 <Truck className="w-3.5 h-3.5 text-amber-400" />
                 <span>Logistics Road Stress</span>
               </label>
               <select
                 value={formData.transportation_stress}
                 onChange={(e) => setFormData({ ...formData, transportation_stress: e.target.value })}
-                className="w-full px-3 py-2 bg-slate-900/90 border border-slate-700/80 rounded-lg text-xs font-medium text-white focus:border-brand-400 focus:outline-none"
+                className="w-full px-3.5 py-2.5 bg-slate-900/90 border border-slate-700/80 rounded-xl text-xs font-medium text-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30 outline-none transition-all"
               >
                 <option value="LOW">Low (Urban Local Distribution)</option>
                 <option value="MEDIUM">Medium (National Highway Freight)</option>
@@ -565,16 +557,16 @@ export const RecommenderForm: React.FC<RecommenderFormProps> = ({
               </select>
             </div>
 
-            {/* Strategic Optimization Priority */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center space-x-1">
+            {/* Strategic Priority */}
+            <div className="space-y-1.5">
+              <label className="block text-xs font-semibold text-slate-300 flex items-center space-x-1">
                 <Leaf className="w-3.5 h-3.5 text-emerald-400" />
                 <span>Strategic Priority</span>
               </label>
               <select
                 value={formData.eco_priority}
                 onChange={(e) => setFormData({ ...formData, eco_priority: e.target.value })}
-                className="w-full px-3 py-2 bg-slate-900/90 border border-slate-700/80 rounded-lg text-xs font-medium text-white focus:border-brand-400 focus:outline-none"
+                className="w-full px-3.5 py-2.5 bg-slate-900/90 border border-slate-700/80 rounded-xl text-xs font-medium text-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30 outline-none transition-all"
               >
                 <option value="BALANCED">Balanced (Barrier + Cost + Eco)</option>
                 <option value="MAX_SUSTAINABILITY">100% Compostable / Bio-based</option>
@@ -586,22 +578,22 @@ export const RecommenderForm: React.FC<RecommenderFormProps> = ({
         </div>
 
         {/* Submit Action Button */}
-        <div className="flex items-center justify-end">
+        <div className="flex items-center justify-end pt-2">
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full sm:w-auto px-8 py-4 rounded-xl bg-gradient-to-r from-brand-500 via-emerald-400 to-teal-400 hover:from-brand-400 hover:to-teal-300 text-slate-950 font-black text-sm shadow-xl shadow-brand-500/25 flex items-center justify-center space-x-3 transition-all transform hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50"
+            className="w-full sm:w-auto px-9 py-4 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-sm shadow-xl shadow-emerald-500/20 flex items-center justify-center space-x-3 transition-all transform hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50"
           >
             {isSubmitting ? (
               <>
-                <RefreshCw className="w-5 h-5 animate-spin" />
+                <RefreshCw className="w-5 h-5 animate-spin text-slate-950" />
                 <span>Computing Physics & Laminate Synthesis...</span>
               </>
             ) : (
               <>
-                <Sparkles className="w-5 h-5" />
-                <span>Generate Physics & AI Recommendation</span>
-                <ArrowRight className="w-5 h-5" />
+                <Sparkles className="w-5 h-5 text-slate-950 stroke-[2.5]" />
+                <span>Generate Physics Formulation</span>
+                <ArrowRight className="w-5 h-5 text-slate-950 stroke-[2.5]" />
               </>
             )}
           </button>
